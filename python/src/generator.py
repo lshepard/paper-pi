@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 import sys
 import os
+import datetime
 picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
 if os.path.exists(libdir):
@@ -13,30 +14,52 @@ import time
 from PIL import Image,ImageDraw,ImageFont
 import traceback
 
+from darksky import forecast
+import requests
+import json
+
 logging.basicConfig(level=logging.DEBUG)
+DARKSKYKEY="af20eaabf57d81ada9cebadf46b90b53"
+
+def get_weather():
+    return forecast (DARKSKYKEY, 41.931259, -87.669975)
+    
 
 try:
-    logging.info("epd7in5bc Demo")
-    
+    logging.info("Generating Weather Image")
+
+    weather = get_weather()
+    logging.info("Weather " + ",".join([str(int(hour.temperature)) for hour in weather.hourly[:10]]))
+
     epd = epd7in5bc.EPD()
     logging.info("init and Clear")
     epd.init()
-    epd.Clear()
+#    epd.Clear()
     time.sleep(1)
     
-    logging.info("3.read bmp file")
-    HBlackimage = Image.open(os.path.join(picdir, '7in5b-b.bmp'))
-    HRYimage = Image.open(os.path.join(picdir, '7in5b-r.bmp'))
-    # HBlackimage = Image.open(os.path.join(picdir, '7in5c-b.bmp'))
-    # HRYimage = Image.open(os.path.join(picdir, '7in5c-r.bmp'))
+    logging.info("Drawing")    
+    font56 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 56)
+    font36 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 36)
+    font24 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
+    font18 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
+    
+    # Drawing on the Horizontal image
+    logging.info("1.Drawing on the Horizontal image...") 
+    HBlackimage = Image.new('1', (epd.width, epd.height), 255)  # 298*126
+    HRYimage = Image.new('1', (epd.width, epd.height), 255)  # 298*126  ryimage: red or yellow image  
+    drawblack = ImageDraw.Draw(HBlackimage)
+    drawry = ImageDraw.Draw(HRYimage)
+
+    # display the date at the top
+    drawblack.text((20, 20), datetime.datetime.now().strftime("%A, %B %d, %Y"), font = font36, fill = 0)
+
+    drawblack.text((50, 100), str(int(weather.daily[1].temperatureMax)) + " degrees", font = font56, fill = 0)
+    drawblack.text((50, 200), weather.daily.summary, font = font24, fill = 0)
+
+    # show the weather for today
+
     epd.display(epd.getbuffer(HBlackimage), epd.getbuffer(HRYimage))
-    time.sleep(2)
-    
-    logging.info("Clear...")
-    epd.init()
-    epd.Clear()
-    
-    logging.info("Goto Sleep...")
+
     epd.sleep()
         
 except IOError as e:
