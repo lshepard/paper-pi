@@ -1,21 +1,11 @@
 version: '3'
 services:
-  mongo:
-    image: mongo:3.2
-    volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
-    expose:
-      - "27017"
   app:
-    image: lukehaas/paper-pi
+    build: .
+    volumes:
+      - ".:/app/dev"
     ports:
       - "8001:8001"
-    links:
-      - mongo
-    depends_on:
-      - mongo
     env_file:
       - ./.env
     tty: true

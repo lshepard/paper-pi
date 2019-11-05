@@ -5,11 +5,9 @@ const generate = require('./generate')
 const port = process.env.PORT || 8080
 
 const requestHandler = async (req, response) => {
-  generate.start().then(() => {
-    const content = fs.readFileSync(path.join(__dirname, '../build/monocolor.bmp'))
-    response.writeHead(200, { 'Content-Type': 'image/bmp' })
-    response.end(content, 'utf-8')
-
+    response.writeHead(200, {'Content-Type':'text/html'})
+    response.end("Hello world!")
+    
   }).catch(() => {
     response.end('Error')
   })

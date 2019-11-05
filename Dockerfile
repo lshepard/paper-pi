@@ -13,8 +13,9 @@ COPY package.json ./package.json
 COPY package-lock.json ./package-lock.json
 COPY assets ./assets
 COPY src ./src
+COPY test ./test
 
-RUN npm install --only=production
+RUN npm install 
 #VOLUME /data/db
 EXPOSE 8080 8080
 
