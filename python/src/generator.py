@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import sys
 import os
-import datetime
+from datetime import date, timedelta
 picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
 if os.path.exists(libdir):
@@ -11,8 +11,9 @@ if os.path.exists(libdir):
 import logging
 from waveshare_epd import epd7in5bc
 import time
-from PIL import Image,ImageDraw,ImageFont
+from PIL import Image,ImageDraw,ImageFont,ImageOps
 import traceback
+import textwrap
 
 from darksky import forecast
 import requests
@@ -23,7 +24,10 @@ DARKSKYKEY="af20eaabf57d81ada9cebadf46b90b53"
 
 def get_weather():
     return forecast (DARKSKYKEY, 41.931259, -87.669975)
-    
+
+def icon_img(icon, width):
+    img = Image.open(os.path.join(picdir, "weather/", icon + ".bmp"))
+    return ImageOps.invert(img.resize((width,width)))
 
 try:
     logging.info("Generating Weather Image")
@@ -50,11 +54,37 @@ try:
     drawblack = ImageDraw.Draw(HBlackimage)
     drawry = ImageDraw.Draw(HRYimage)
 
-    # display the date at the top
-    drawblack.text((20, 20), datetime.datetime.now().strftime("%A, %B %d, %Y"), font = font36, fill = 0)
+    # Border lines on the screen
 
-    drawblack.text((50, 100), str(int(weather.daily[1].temperatureMax)) + " degrees", font = font56, fill = 0)
-    drawblack.text((50, 200), weather.daily.summary, font = font24, fill = 0)
+    # Print out the weather
+    weekday = date.today()
+    line = 1
+    with get_weather() as weather:
+        HRYimage.paste(icon_img(weather.daily.icon, 60), box=(20,line*30-2))
+        drawblack.text((80, line*30), weather.daily.summary, font = font24, fill = 0)
+
+        line += 2
+        for day in weather.daily:
+            day = dict(day = date.strftime(weekday, '%a'),
+                       sum = day.summary,
+                       tempMin = day.temperatureMin,
+                       tempMax = str(int(day.temperatureMax)),
+                       icon = day.icon
+            )
+            
+            HRYimage.paste(icon_img(day["icon"], 35), box=(20,line*30-2))
+            
+            drawblack.text((60, line*30), '{day}: {sum}'.format(**day), font = font18, fill = 0)
+            drawry.text((400, line*30), '{tempMax}'.format(**day), font = font24, fill = 0)
+
+            weekday += timedelta(days=1)
+            line += 1
+
+    # display the date at the top
+#    drawblack.text((20, 20), datetime.datetime.now().strftime("%A, %B %d, %Y"), font = font36, fill = 0)
+
+#    drawblack.text((50, 100), str(int(weather.daily[1].temperatureMax)) + " degrees", font = font56, fill = 0)
+#    drawblack.text((50, 200), weather.daily.summary, font = font24, fill = 0)
 
     # show the weather for today
 
