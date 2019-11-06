@@ -2,7 +2,8 @@
 # -*- coding:utf-8 -*-
 import sys
 import os
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from pytz import timezone
 picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
 if os.path.exists(libdir):
@@ -46,6 +47,7 @@ try:
     font36 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 36)
     font24 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
     font18 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
+    font12 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 12)
     
     # Drawing on the Horizontal image
     logging.info("1.Drawing on the Horizontal image...") 
@@ -56,26 +58,28 @@ try:
 
     # Border lines on the screen
 
+    nowstring = datetime.now(tz=timezone("America/Chicago")).strftime('%b %d %-H:%M')
+    drawblack.text((500, 350), f"Updated {nowstring}", font = font12, fill = 0)
+
     # Print out the weather
     weekday = date.today()
     line = 1
     with get_weather() as weather:
-        HRYimage.paste(icon_img(weather.daily.icon, 60), box=(20,line*30-2))
-        drawblack.text((80, line*30), weather.daily.summary, font = font24, fill = 0)
+        HRYimage.paste(icon_img(weather.daily.icon, 66), box=(20,line*30-4))
+        drawry.text((100, line*30), f"Currently {int(weather.currently.temperature)}°", font = font56, fill = 0)
 
-        line += 2
+        line += 3
         for day in weather.daily[0:3]:
             day = dict(day = date.strftime(weekday, '%a'),
                        sum = day.summary,
-                       tempMin = day.temperatureMin,
+                       tempMin = str(int(day.temperatureMin)),
                        tempMax = str(int(day.temperatureMax)),
                        icon = day.icon
             )
             
-            HRYimage.paste(icon_img(day["icon"], 35), box=(20,line*30-2))
-            
+            HRYimage.paste(icon_img(day["icon"], 33), box=(20,line*30-4))
             drawblack.text((60, line*30), '{day}: {sum}'.format(**day), font = font18, fill = 0)
-            drawry.text((400, line*30), '{tempMax}'.format(**day), font = font24, fill = 0)
+            drawry.text((400, line*30), '{tempMin}°-{tempMax}°'.format(**day), font = font24, fill = 0)
 
             weekday += timedelta(days=1)
             line += 1
