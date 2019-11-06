@@ -26,7 +26,7 @@ def get_weather():
     return forecast (DARKSKYKEY, 41.931259, -87.669975)
 
 def icon_img(icon, width):
-    img = Image.open(os.path.join(picdir, "weather/", icon + ".bmp"))
+    img = Image.open(os.path.join(picdir, "weather/", icon + ".png"))
     return ImageOps.invert(img.resize((width,width)))
 
 try:
@@ -39,7 +39,7 @@ try:
     logging.info("init and Clear")
     epd.init()
 #    epd.Clear()
-    time.sleep(1)
+#    time.sleep(1)
     
     logging.info("Drawing")    
     font56 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 56)
@@ -64,7 +64,7 @@ try:
         drawblack.text((80, line*30), weather.daily.summary, font = font24, fill = 0)
 
         line += 2
-        for day in weather.daily:
+        for day in weather.daily[0:3]:
             day = dict(day = date.strftime(weekday, '%a'),
                        sum = day.summary,
                        tempMin = day.temperatureMin,
