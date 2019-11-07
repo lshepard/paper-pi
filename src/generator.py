@@ -14,6 +14,8 @@ from pytz import timezone
 import logging
 import time
 from PIL import Image,ImageDraw,ImageFont,ImageOps
+import numpy as np
+
 import traceback
 import textwrap
 
@@ -104,7 +106,21 @@ def icon_img(icon, width):
 def write_image_to_disk(HBlackImage, HRedImage, out):
     """Write the image to disk. 
     For now just do black - figure out the red overlay later"""
-    HBlackImage.save(out)
+
+    black_data = np.array(HBlackImage.convert("RGBA"))
+
+    # Convert the red image
+    red_data = np.array(HRedImage.convert("RGBA"))   # "data" is a height x width x 4 numpy array
+    logging.info(f"red_data shape: {red_data.shape}")
+    
+    red, green, blue, alpha = red_data.T # Temporarily unpack the bands for readability
+
+    # Replace black with red... (leaves alpha values alone...)
+    white_areas = (red == 0) & (blue == 0) & (green == 0)
+    red_data[..., :-1][white_areas.T] = (255, 0, 0) # Transpose back needed
+
+    composed = Image.fromarray(np.minimum(black_data, red_data))
+    composed.save(out)
     
 def write_image_to_display(HBlackImage, HRedImage):
     from waveshare_epd import epd7in5bc
