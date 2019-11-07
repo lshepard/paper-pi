@@ -4,6 +4,11 @@ pillow
 click
 numpy
 
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+oauth2client
+
 # Only needed on the rpi, covered in the install script
 # RPi.GPIO
 # spidev

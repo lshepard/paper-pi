@@ -7,6 +7,10 @@ picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__)
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
 if os.path.exists(libdir):
     sys.path.append(libdir)
+import pickle
+
+from operator import itemgetter
+from itertools import groupby
 
 from datetime import date, timedelta, datetime
 from pytz import timezone
@@ -20,6 +24,14 @@ import traceback
 import textwrap
 
 from darksky import forecast
+
+import pickle
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+
+SHEPARD_CALENDAR_ID = 'rejbsf9ggsmnb2354j3depe3t4@group.calendar.google.com'
 
 @click.command()
 @click.option('--display/--no-display', default=False, help='Push the generated image to the e-Ink display')
@@ -75,25 +87,67 @@ def generate_image(width, height):
     thetime = datetime.now(tz=timezone("America/Chicago"))
     line = 1
     with get_weather() as weather:
-        HRedImage.paste(icon_img(weather.currently.icon, 66), box=(20,line*30-4))
-        drawry.text((100, line*30), f"Currently {int(weather.currently.temperature)}°", font = font56, fill = 0)
-
-        line += 3
         for hour in weather.hourly[0:8]:
-            hour = dict( hour = date.strftime(thetime, '%H:00'),
+            hour = dict( hour = date.strftime(thetime, '%-I%p'),
                          temp = str(int(hour.temperature)),
                          sum = hour.summary,
                          icon = hour.icon
             )
             
-            HRedImage.paste(icon_img(hour["icon"], 33), box=(20,line*30-4))
-            drawblack.text((60, line*30), '{hour}: {temp}° {sum}'.format(**hour), font = font18, fill = 0)
+            HRedImage.paste(icon_img(hour["icon"], 33), box=(400,line*30-4))
+
+            if (line == 1):
+                draw = drawry
+            else:
+                draw = drawblack
+                
+            draw.text((450, line*30), '{hour}  {temp}° {sum}'.format(**hour), font = font18, fill = 0)
 #            drawry.text((400, line*30), '{tempMin}-{tempMax}°'.format(**day), font = font24, fill = 0)
 
             thetime += timedelta(hours=1)
             line += 1
+
+    events = get_calendar_events()
+
+    if not events:
+        drawblack.text(350, 50, "No events available", font=font24, fill=0)
+    
+    num = 0
+    nextevent = False
+    for day, day_events in groupby(events, key=event_day):
+        line= 2
+        num += 1
+        if num > 1:
+            break
+        
+        drawblack.text((20, 25*line),
+                       day.strftime('%A'),
+                       font=font24, fill=0)
+        
+        line += 1
+        
+        for event in day_events:
+            if event['start'].get('dateTime') is not None:
+                line += 1
+                startdate = datetime.strptime(event['start'].get('dateTime'),
+                                              "%Y-%m-%dT%H:%M:%S%z")
+
+                timediff = startdate - datetime.now(tz=timezone("America/Chicago"))
+                if (timediff > timedelta(hours=0)) & (timediff < timedelta(hours=2)):
+                    draw = drawry
+                    nextevent = True
+                else:
+                    draw = drawblack
+                    
+                wrapped = "\n".join(textwrap.wrap(f"{startdate.strftime('%-I:%M %p')} {event['summary']}", 40))
+ 
+                draw.text((20, 25*line), wrapped, font=font18, fill=0)
             
     return (HBlackImage, HRedImage)
+
+def event_day(event):
+    return datetime.strptime(event['start'].get('dateTime',"2019-11-06")[0:10],
+                             "%Y-%m-%d")
 
 def get_weather():
     """Connect to DarkSky and get local weather info for Chicago"""
@@ -105,6 +159,45 @@ def icon_img(icon, width):
     all darksky values of "icon". """
     img = Image.open(os.path.join(picdir, "weather/", icon + ".png"))
     return ImageOps.invert(img.resize((width,width)))
+
+def get_calendar_creds():
+    SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+        
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    return creds
+
+def get_calendar_events():
+    creds = get_calendar_creds()
+
+    service = build('calendar', 'v3', credentials=creds)
+
+    # Call the Calendar API
+    now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+    print('Getting the upcoming 10 events')
+    events_result = service.events().list(calendarId=SHEPARD_CALENDAR_ID, timeMin=now,
+                                          maxResults=25, singleEvents=True,
+                                          orderBy='startTime').execute()
+    return events_result.get('items', [])
+
 
 def write_image_to_disk(HBlackImage, HRedImage, out):
     """Write the image to disk. 
