@@ -21,14 +21,18 @@ import textwrap
 
 from darksky import forecast
 
-logging.basicConfig(level=logging.DEBUG)
-
 @click.command()
 @click.option('--display/--no-display', default=False, help='Push the generated image to the e-Ink display')
 @click.option('--out', default="image.png", help='Filename where the generated image should go.')
+@click.option('--logfile', default="", help="Filename for logs")
 
-def main(display, out):
+def main(display, out, logfile):
     try:
+        if logfile:
+            logging.basicConfig(filename=logfile, level=logging.DEBUG)
+        else:
+            logging.basicConfig(level=logging.DEBUG)
+            
         black, red = generate_image(640, 384)
         
         write_image_to_disk(black, red, out)
