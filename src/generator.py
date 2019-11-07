@@ -72,26 +72,25 @@ def generate_image(width, height):
     drawblack.text((500, 350), f"Updated {nowstring}", font = font12, fill = 0)
 
     # Print out the weather
-    weekday = date.today()
+    thetime = datetime.now(tz=timezone("America/Chicago"))
     line = 1
     with get_weather() as weather:
-        HRedImage.paste(icon_img(weather.daily.icon, 66), box=(20,line*30-4))
+        HRedImage.paste(icon_img(weather.currently.icon, 66), box=(20,line*30-4))
         drawry.text((100, line*30), f"Currently {int(weather.currently.temperature)}°", font = font56, fill = 0)
 
         line += 3
-        for day in weather.daily[0:3]:
-            day = dict(day = date.strftime(weekday, '%a'),
-                       sum = day.summary,
-                       tempMin = str(int(day.temperatureMin)),
-                       tempMax = str(int(day.temperatureMax)),
-                       icon = day.icon
+        for hour in weather.hourly[0:8]:
+            hour = dict( hour = date.strftime(thetime, '%H:00'),
+                         temp = str(int(hour.temperature)),
+                         sum = hour.summary,
+                         icon = hour.icon
             )
             
-            HRedImage.paste(icon_img(day["icon"], 33), box=(20,line*30-4))
-            drawblack.text((60, line*30), '{day}: {sum}'.format(**day), font = font18, fill = 0)
-            drawry.text((400, line*30), '{tempMin}°-{tempMax}°'.format(**day), font = font24, fill = 0)
+            HRedImage.paste(icon_img(hour["icon"], 33), box=(20,line*30-4))
+            drawblack.text((60, line*30), '{hour}: {temp}° {sum}'.format(**hour), font = font18, fill = 0)
+#            drawry.text((400, line*30), '{tempMin}-{tempMax}°'.format(**day), font = font24, fill = 0)
 
-            weekday += timedelta(days=1)
+            thetime += timedelta(hours=1)
             line += 1
             
     return (HBlackImage, HRedImage)
