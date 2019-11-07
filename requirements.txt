@@ -1,0 +1,9 @@
+pytz
+darkskylib
+pillow
+click
+
+# Only needed on the rpi, covered in the install script
+# RPi.GPIO
+# spidev
+

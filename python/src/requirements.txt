@@ -1,3 +1,0 @@
-pytz
-darkskylib
-pillow
