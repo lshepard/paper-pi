@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 import sys
 import click
@@ -131,8 +131,8 @@ def write_image_to_display(HBlackImage, HRedImage):
     logging.info("init and Clear")
     epd.init()
 #    epd.Clear()
-    epd.display(epd.getbuffer(HBlackimage), epd.getbuffer(HRedImage))
-    epd.sleep(1)
+    epd.display(epd.getbuffer(HBlackImage), epd.getbuffer(HRedImage))
+    epd.sleep()
 
 
 
