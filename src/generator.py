@@ -115,11 +115,19 @@ def generate_image(width, height):
     num = 0
     nextevent = False
     for day, day_events in groupby(events, key=event_day):
+        logging.info(f"Evaluating events on {day}, num={num}")
         line= 2
+        if day.date() < datetime.now(tz=timezone("America/Chicago")).date():
+            logging.info(f"Skipping events on {day}")
+            continue
+
         num += 1
         if num > 1:
+            logging.info(f"Skipping events on {day} because n={num}")
             break
         
+#        logging.info(f"Events on {day}: {list(day_events)}")
+            
         drawblack.text((20, 25*line),
                        day.strftime('%A'),
                        font=font24, fill=0)
@@ -129,9 +137,9 @@ def generate_image(width, height):
         for event in day_events:
             if event['start'].get('dateTime') is not None:
                 line += 1
+
                 startdate = datetime.strptime(event['start'].get('dateTime'),
                                               "%Y-%m-%dT%H:%M:%S%z")
-
                 timediff = startdate - datetime.now(tz=timezone("America/Chicago"))
                 if (timediff > timedelta(hours=0)) & (timediff < timedelta(hours=2)):
                     draw = drawry
@@ -193,7 +201,7 @@ def get_calendar_events():
     # Call the Calendar API
     now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     print('Getting the upcoming 10 events')
-    events_result = service.events().list(calendarId=SHEPARD_CALENDAR_ID, timeMin=now,
+    events_result = service.events().list(calendarId=SHEPARD_CALENDAR_ID, timeMin=now, 
                                           maxResults=25, singleEvents=True,
                                           orderBy='startTime').execute()
     return events_result.get('items', [])
